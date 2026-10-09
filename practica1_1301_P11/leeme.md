@@ -1,5 +1,5 @@
 # Práctica 1
-*Realizada por Álvaro Íñigo Romillo y Matteo Artuñedo González*
+*Realizada por Álvaro Íñigo Romillo y Matteo Artuñedo González, del grupo 130_1*
 
 A continuación se mencionarán las funcionalidades desarrolladas y las comprobaciones realizadas:
 
@@ -22,4 +22,4 @@ Se ha comprobado que todos los bytes de la traza capturada coinciden con lo que 
 Se ha comprobado que, dada una traza, la diferencia marcada por nuestro programa y la que podemos calcular a mano a partir de los datos de Wireshark coinciden.
 
 ## Imprimir los N primeros bytes de un paquete y validarlo con Wireshark (captura de pantalla): Realizado 
-Se imprimen correctamente solamente los 5 primeros bytes. Se observa esto en el archivo 'practica1captura.png'
+Se imprimen correctamente los bytes especificados. Se observa esto en el archivo 'practica1captura.png', donde se imprimen los primeros 33 bytes del paquete y se ve que coinciden con los mostrados en Wireshark.

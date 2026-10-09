@@ -37,9 +37,9 @@ def procesa_paquete(us,header,data):
 
 	#Captura del tiempo para calcular al final del programa
 	if primer_timestamp is None:
-		primer_timestamp = header.ts.tv_sec
+		primer_timestamp = header.ts.tv_sec + header.ts.tv_usec / 1000000.0
 
-	ultimo_timestamp = header.ts.tv_sec
+	ultimo_timestamp = header.ts.tv_sec + header.ts.tv_usec / 1000000.0
 
 	#Volcamos todos los paquetes en una traza, los que cumplen la condicion de bytes 12 y 13 en otro, si se especifico la interfaz y existen los dump
 	if pdumper_especial is not None and pdumper_todos is not None:
@@ -66,7 +66,7 @@ def procesa_paquete(us,header,data):
 
 	
 if __name__ == "__main__":
-	global pdumper,args,handle
+	global args,handle
 	parser = argparse.ArgumentParser(description='Captura tráfico de una interfaz ( o lee de fichero) y muestra la longitud y timestamp de los 50 primeros paquetes',
 	formatter_class=RawTextHelpFormatter)
 	parser.add_argument('--file', dest='tracefile', default=False,help='Fichero pcap a abrir')
@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
 	
 	#TODO abrir un dumper para volcar el tráfico (si se ha especificado interfaz) 
-	if args.interface:
+	if args.interface or args.tracefile:
 		descr = pcap_open_dead(DLT_EN10MB, ETH_FRAME_MAX)
 		fecha = int(time.time())
 		pdumper_especial = pcap_dump_open(descr,"capturaNOIP.{}.{}.pcap".format(args.interface, fecha))
@@ -135,7 +135,7 @@ if __name__ == "__main__":
 	#TODO si se ha creado un dumper cerrarlo
 	pcap_close(handle)
 	
-	if args.interface:
+	if args.interface or args.tracefile:
 		pcap_close(descr)
 		pcap_dump_close(pdumper_especial)
 		pcap_dump_close(pdumper_todos)
