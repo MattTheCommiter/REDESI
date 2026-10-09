@@ -23,6 +23,8 @@ TO_MS = 10
 broadcastAddr = bytes([0xFF]*6)
 #Diccionario que alamacena para un Ethertype dado qué función de callback se debe ejecutar
 EthernetProtocols = {}
+#Level initialized será la variable global que controle si ya se ha inicializado el nivel
+levelInitialized = False
 
 def getHwAddr(interface:str):
     '''
@@ -62,9 +64,21 @@ def process_Ethernet_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes) -> 
         Retorno:
             -Ninguno
     '''
-    logging.debug('Trama nueva. Función no implementada')
+
     #TODO: Implementar aquí el código que procesa una trama Ethernet en recepción
-    
+    global EthernetProtocols, macAddress
+    originMac = data[0:5]
+    dstMac = data[6:11]
+    ethertype = data[12:13]
+    if dstMac != broadcastAddr and dstMac != macAddress:
+        return
+    if EthernetProtocols.keys().__contains__(ethertype):
+        #Ejecutamos la función correspondiente al protocolo. Pasamos los argumentos necesarios
+        EthernetProtocols.get(ethertype)(us, header, data[14:-1], originMac)
+    else:
+        return
+
+
 
 def process_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes) -> None:
     '''
@@ -128,8 +142,8 @@ def registerEthCallback(callback_func: Callable[[ctypes.c_void_p,pcap_pkthdr,byt
     '''
     global EthernetProtocols
     #EthernetProtocols es el diccionario que relaciona función de callback y ethertype
-    logging.debug('Función no implementada')
-    
+    EthernetProtocols[ethertype] = callback_func
+
 
 def startEthernetLevel(interface:str) -> int:
     '''
@@ -140,21 +154,33 @@ def startEthernetLevel(interface:str) -> int:
                 -Obtener y almacenar en una variable global la dirección MAC asociada a la interfaz que se especifica
                 -Abrir la interfaz especificada en modo promiscuo usando la librería rc1-pcap
                 -Arrancar un hilo de recepción (rxThread) que llame a la función pcap_loop. 
-                -Si todo es correcto marcar la variable global de nivel incializado a True
+                -Si toda la función es correcta marcar la variable global de nivel incializado a True
         Argumentos:
             -Interface: nombre de la interfaz sobre la que inicializar el nivel Ethernet
-        Retorno: 0 si todo es correcto, -1 en otro caso
+        Retorno: 0 si toda la función es correcta, -1 en otro caso
     '''
     global macAddress,handle,levelInitialized,recvThread
     handle = None
     logging.debug('Función no implementada')
     #TODO: implementar aquí la inicialización de la interfaz y de las variables globales
 
+    if levelInitialized: return -1
+
+    macAddress = getHwAddr(interface)
+
+    errbuf = bytearray()
+    handle = pcap_open_live(interface, ETH_FRAME_MAX, 1, TO_MS, errbuf)
+    if handle is None:
+        logging.error(errbuf)
+        return -1
+
     #Una vez hemos abierto la interfaz para captura y hemos inicializado las variables globales (macAddress, handle y levelInitialized) arrancamos
     #el hilo de recepción
     recvThread = rxThread()
     recvThread.daemon = True
     recvThread.start()
+
+    levelInitialized = True
     return 0
 
 def stopEthernetLevel()->int:
@@ -169,7 +195,9 @@ def stopEthernetLevel()->int:
         Argumentos: Ninguno
         Retorno: 0 si todo es correcto y -1 en otro caso
     '''
-    logging.debug('Función no implementada')
+    recvThread.stop()
+    pcap_close(handle)
+    levelInitialized = False
     return 0
     
 def sendEthernetFrame(data:bytes,length:int,etherType:int,dstMac:bytes) -> int:
@@ -190,6 +218,22 @@ def sendEthernetFrame(data:bytes,length:int,etherType:int,dstMac:bytes) -> int:
         Retorno: 0 si todo es correcto, -1 en otro caso
     '''
     global macAddress,handle
-    logging.debug('Función no implementada')
-    
+    frame = bytearray()
+    frame.append(dstMac)
+    frame.append(macAddress)
+    frame.append(etherType)
+
+    if length > ETH_FRAME_MAX: return -1
+
+    frame.append(data)
+
+    # Rellenamos con ceros si es necesario
+    if length < ETH_FRAME_MIN:
+        for _ in range (length, ETH_FRAME_MIN): frame.append(0)
+
+    pcap_inject(handle, frame, length + 14)
+
+
+    return 0
+
         

@@ -53,6 +53,10 @@ if __name__ == "__main__":
 		logging.error('Ethernet no inicializado')
 		sys.exit(-1)
 	# TODO iniciar nivel EthMsg
+	if(initEthMsg(args.interface)) == -1:
+		logging.error('EthMsg no inicializado')
+		stopEthernetLevel()
+		sys.exit(-1)
 	#Inicializamos ARP. Si no podemos inicializar salimos.
 	if initARP(args.interface) == -1:
 		logging.error('ARP no inicializado')

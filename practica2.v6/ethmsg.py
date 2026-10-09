@@ -39,6 +39,7 @@ def process_ethMsg_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac
     '''
     logging.debug('EthMsg: Función no implementada')
     #TODO implementar aquí
+    print(data)
 
 
 
@@ -52,6 +53,7 @@ def initEthMsg(interface:str) -> int:
     '''
     logging.debug('EthMsg: Función no implementada')
     #TODO implementar aquí
+    registerEthCallback(process_ethMsg_frame, ETHTYPE)
     return 0
 
 def sendEthMsg(message:bytes) -> bytes:
