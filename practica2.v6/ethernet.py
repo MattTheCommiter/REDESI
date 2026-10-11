@@ -65,11 +65,11 @@ def process_Ethernet_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes) -> 
             -Ninguno
     '''
 
-    #TODO: Implementar aquí el código que procesa una trama Ethernet en recepción
     global EthernetProtocols, macAddress
-    originMac = data[0:5]
-    dstMac = data[6:11]
-    ethertype = data[12:13]
+    unpackedData = struct.unpack('!6s6sH', data)
+    originMac = unpackedData[0]
+    dstMac = unpackedData[1]
+    ethertype = unpackedData[2]
     if dstMac != broadcastAddr and dstMac != macAddress:
         return
     if EthernetProtocols.keys().__contains__(ethertype):
@@ -161,15 +161,14 @@ def startEthernetLevel(interface:str) -> int:
     '''
     global macAddress,handle,levelInitialized,recvThread
     handle = None
-    logging.debug('Función no implementada')
-    #TODO: implementar aquí la inicialización de la interfaz y de las variables globales
 
     if levelInitialized: return -1
-
+    #Obtenemos la dirección MAC de la interfaz
     macAddress = getHwAddr(interface)
 
+    #Abrimos la interfaz en modo promiscuo
     errbuf = bytearray()
-    handle = pcap_open_live(interface, ETH_FRAME_MAX, 1, TO_MS, errbuf)
+    handle = pcap_open_live(interface, ETH_FRAME_MAX, PROMISC, TO_MS, errbuf)
     if handle is None:
         logging.error(errbuf)
         return -1
@@ -219,21 +218,21 @@ def sendEthernetFrame(data:bytes,length:int,etherType:int,dstMac:bytes) -> int:
     '''
     global macAddress,handle
     frame = bytearray()
-    frame.append(dstMac)
-    frame.append(macAddress)
-    frame.append(etherType)
+    frame = struct.pack('6s6sH', dstMac, macAddress, etherType)
 
     if length > ETH_FRAME_MAX: return -1
 
-    frame.append(data)
+    # Añadimos el contenido del frame
+    frame.extend(data[:length])
 
-    # Rellenamos con ceros si es necesario
-    if length < ETH_FRAME_MIN:
-        for _ in range (length, ETH_FRAME_MIN): frame.append(0)
+    # Pad the frame if necessary (minimum Ethernet frame size: 60 bytes, excluding the 4-byte FCS)
+    if len(frame) < 60:
+        frame.extend(b'\x00' * (ETH_FRAME_MIN - len(frame)))
 
-    pcap_inject(handle, frame, length + 14)
+    # Inject the complete frame
+    result = pcap_inject(handle, frame, len(frame))
 
+    if result < 0:
+        return -1
 
     return 0
-
-        
