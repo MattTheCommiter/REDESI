@@ -25,11 +25,12 @@ def printHelp():
 	print ( "\tp : Imprime cache ARP\n")
 	print ( "\th : Muestra la ayuda\n")
 	#TODO g : ARP gratuito
+	print ( "\tg : Realiza un ARP gratuito\n")
 	print ( "\tq : Salir del programa\n")
 
 
 if __name__ == "__main__":
-	global pdumper,args,handle,el,stop
+
 	parser = argparse.ArgumentParser(description='Esta práctica ejecuta resoluciones ARP. Dada una dirección IP devuelve cual es la MAC asociada en la LAN actual',
 	formatter_class=RawTextHelpFormatter)
 	parser.add_argument('--itf', dest='interface', default=False,help='Interfaz a abrir')
@@ -105,6 +106,14 @@ if __name__ == "__main__":
 				# Aquí puedes llamar a una función que maneje el envío de mensajes
 				sendEthMsg(mensaje)
 			#TODO ARP gratuito
+			elif comando.startswith("g "):
+				myIP = getIP(args.interface) #calculo el IP ya que puedo estar leyendo un resultado desactualizado o no inicializado de ARP
+				ret = ARPResolution(myIP)
+				if ret is None:
+					print("No se ha dado respuesta a la ARP gratuita\n")
+				else:
+					mac_string = ":".join(f"{b:02x}" for b in ret)
+					print(f"El ARP gratuito ha respondido con el MAC: {mac_string}\n")
 			else:
 				print("Comando no reconocido. 'h' para ayuda.\n")
 		except KeyboardInterrupt:
@@ -112,7 +121,10 @@ if __name__ == "__main__":
 			break
 	logging.info('Cerrando ....')
 	#Paramos nivel ARP
+
+	
 	#Paramos nivel EthMsg
+	
 	#Paramos el nivel Ethernet
 	if(stopEthernetLevel()!=0):
 		logging.error('Parando nivel Ethernet')

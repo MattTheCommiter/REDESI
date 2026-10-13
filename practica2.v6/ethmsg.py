@@ -14,7 +14,7 @@ import time
 from threading import Lock
 from expiringdict import ExpiringDict
 
-ETHTYPE = 0x3003
+ETHTYPE = 0x0AA0
 #Dirección de difusión (Broadcast)
 broadcast = bytes([0xFF]*6)
 
@@ -37,9 +37,20 @@ def process_ethMsg_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac
             -srcMac: MAC origen de la trama Ethernet que se ha recibido
         Retorno: Ninguno
     '''
-    logging.debug('EthMsg: Función no implementada')
+    
     #TODO implementar aquí
-    print(data)
+    if len(data) < 2 : 
+        return 
+
+    longitud = struct.unpack('!H', data[:2])
+
+    mensaje = data[2: 2 + longitud]
+    mac_string = ":".join(f"{b:02x}" for b in srcMac)
+
+    logging.info("[%d.%d] %s : %s",header.ts.tv_sec, header.ts.tv_usec, mac_string, mensaje) #imprimimos el mensaje 
+    
+    return
+    
 
 
 
@@ -51,10 +62,11 @@ def initEthMsg(interface:str) -> int:
         Argumentos:   
 			interfaz
     '''
-    logging.debug('EthMsg: Función no implementada')
+    
     #TODO implementar aquí
     registerEthCallback(process_ethMsg_frame, ETHTYPE)
     return 0
+
 
 def sendEthMsg(message:bytes) -> bytes:
     '''
@@ -73,6 +85,12 @@ def sendEthMsg(message:bytes) -> bytes:
                 
           
     '''
-    logging.debug('EthMsg: Función no implementada')
+    
     #TODO implementar aquí
-    return None
+    longitud = struct.pack('!H', len(message))
+    data = longitud + message
+    result = sendEthernetFrame(data, len(data), ETHTYPE, broadcastAddr)
+    if result < 0:
+        return None
+
+    return result

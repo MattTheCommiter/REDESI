@@ -67,14 +67,15 @@ def process_Ethernet_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes) -> 
 
     global EthernetProtocols, macAddress
     unpackedData = struct.unpack('!6s6sH', data)
-    originMac = unpackedData[0]
-    dstMac = unpackedData[1]
+    dstMac = unpackedData[0]
+    originMac = unpackedData[1]
     ethertype = unpackedData[2]
+
     if dstMac != broadcastAddr and dstMac != macAddress:
         return
     if EthernetProtocols.keys().__contains__(ethertype):
         #Ejecutamos la función correspondiente al protocolo. Pasamos los argumentos necesarios
-        EthernetProtocols.get(ethertype)(us, header, data[14:-1], originMac)
+        EthernetProtocols.get(ethertype)(us, header, data[14:], originMac)
     else:
         return
 

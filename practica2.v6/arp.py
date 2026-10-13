@@ -15,6 +15,7 @@ import fcntl
 import time
 from threading import Lock
 from expiringdict import ExpiringDict
+ETHTYPE = 0x0806
 
 #Semáforo global 
 globalLock =Lock()
@@ -97,15 +98,16 @@ def processARPRequest(data:bytes,MAC:bytes)->None:
             -MAC: dirección MAC origen extraída por el nivel Ethernet
         Retorno: Ninguno
     '''
-    unpackedData = struct.unpack('!6sI6sI', data)
-    srcMac = unpackedData[0]
+    unpackedData = struct.unpack('!H6sI6sI', data)
+    opCode = unpackedData[0]
+    srcMac = unpackedData[1]
     if srcMac != MAC: return
-    srcIP = unpackedData[1]
-    dstIP = unpackedData[3] #Omitimos la MAC destino
+    srcIP = unpackedData[2]
+    dstIP = unpackedData[4] #Omitimos la MAC destino
 
     if dstIP == myIP:
         reply = createARPReply(srcIP, srcMac)
-        sendEthernetFrame(reply, 28, 0x0806, srcMac)
+        sendEthernetFrame(reply, 28, ETHTYPE, srcMac)
 
 
 def processARPReply(data:bytes,MAC:bytes)->None:
@@ -132,19 +134,20 @@ def processARPReply(data:bytes,MAC:bytes)->None:
         Retorno: Ninguno
     '''
     global requestedIP,resolvedMAC,awaitingResponse,cache
-    unpackedData = struct.unpack('!6sI6sI', data)
-    srcMac = unpackedData[0]
+    unpackedData = struct.unpack('!H6sI6sI', data)
+    opCode = unpackedData[0]
+    srcMac = unpackedData[1]
     if srcMac != MAC: return
-    srcIP = unpackedData[1]
-    dstMAC = unpackedData[2]
-    dstIP = unpackedData[3] #Omitimos la MAC destino
+    srcIP = unpackedData[2]
+    dstMAC = unpackedData[3]
+    dstIP = unpackedData[4] 
 
     if not (dstIP == myIP): return
     if not (srcIP == requestedIP): return
     cache[srcIP] = srcMac
-    with cacheLock: resolvedMAC = srcMac
-    with cacheLock: awaitingResponse = False
-    with cacheLock: requestedIP = None
+    with globalLock: resolvedMAC = srcMac
+    with globalLock: awaitingResponse = False
+    with globalLock: requestedIP = None
 
 
 
@@ -202,6 +205,7 @@ def process_arp_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:by
     unpackedData = struct.unpack('6sH', data)
     commonHeader = unpackedData[0]
 
+
     if not ( commonHeader == ARPHeader):
         return
 
@@ -225,14 +229,17 @@ def initARP(interface:str) -> int:
     global myIP,myMAC,arpInitialized
 
     #Registramos la función de callback
-    registerEthCallback(process_arp_frame, 0x0806)
+    registerEthCallback(process_arp_frame, ETHTYPE)
 
     #Almacenamos IP y MAC
     myIP = getIP(interface)
     myMAC = getHwAddr(interface)
 
     #TODO ARP gratuito
-
+    resultado = ARPResolution(myIP)
+    if resultado == myMAC:
+        return -1
+    
     #Marcamos la variable de nivel ARP a True
     arpInitialized = True
     return 0
@@ -257,21 +264,22 @@ def ARPResolution(ip:int) -> bytes:
             Como estas variables globales se leen y escriben concurrentemente deben ser protegidas con un Lock
     '''
     global requestedIP,awaitingResponse,resolvedMAC
+    with cacheLock:
+        if cache.keys().__contains__(ip):
+            return cache.get(ip)
 
-    if cache.keys().__contains__(ip):
-        return cache.get(ip)
-
-    with cacheLock: requestedIP = ip
-    with cacheLock: awaitingResponse = True
+    with globalLock: requestedIP = ip
+    with globalLock: awaitingResponse = True
 
     request = createARPRequest(ip)
 
     for _ in range(0,3):
-        with cacheLock: status = awaitingResponse
+        with globalLock: status = awaitingResponse
         if status == True:
-            sendEthernetFrame(request, ARP_FULL_LEN, 0x0806, broadcastAddr)
+            sendEthernetFrame(request, ARP_FULL_LEN, ETHTYPE, broadcastAddr)
+            time.sleep(0.2) #un chin de sleep para que no se termine el bucle sin dejar tiempo de respuesta
         else:
-            with cacheLock: return resolvedMAC
+            with globalLock: return resolvedMAC
 
 
     return None
