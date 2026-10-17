@@ -6,11 +6,19 @@ A continuación se mencionarán las funcionalidades desarrolladas y las comproba
 ## Normativa de entrega cumplida en su totalidad: Realizado 
 Varias relecturas del enunciado y revisión del archivo subido a Moodle.
     
-## Implementación de la capa Ethernet: Realizado 
+## Recibir tramas Ethernet, realizar comprobaciones yllamar correctamente a la función de callback de nivel superior: Realizado 
     
-## Implementación del protocolo ARP: Realizado.
+## Enviar tramas Ethernet correctamente: Realizado.
 
-## Implementación de la funcionalidad de ARP gratuito: Realizado
+## Imprimir mensajes sobre el protocolo 0x0AA0: Realizado
     
-## Implementación de la funcionalidad de envío de mensajes: Realizado.
+## Enviar correctamente peticiones ARP: Realizado.
+
+## Procesar correctamente peticiones ARP recibidas: Realizado
+
+## Enviar correctamente respuestas ARP
+
+## Procesar correctamente respuestas ARP
+
+## Manejo correcto de la caché ARP
 
