@@ -66,7 +66,7 @@ def process_Ethernet_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes) -> 
     '''
 
     global EthernetProtocols, macAddress
-    unpackedData = struct.unpack('!6s6sH', data)
+    unpackedData = struct.unpack('!6s6sH', data[:14])
     dstMac = unpackedData[0]
     originMac = unpackedData[1]
     ethertype = unpackedData[2]
@@ -219,19 +219,19 @@ def sendEthernetFrame(data:bytes,length:int,etherType:int,dstMac:bytes) -> int:
     '''
     global macAddress,handle
     frame = bytearray()
-    frame = struct.pack('6s6sH', dstMac, macAddress, etherType)
+    frame += struct.pack('6s6sH', dstMac, macAddress, etherType)
 
     if length > ETH_FRAME_MAX: return -1
 
     # Añadimos el contenido del frame
-    frame.extend(data[:length])
+    frame += data[:length]
 
     # Pad the frame if necessary (minimum Ethernet frame size: 60 bytes, excluding the 4-byte FCS)
     if len(frame) < 60:
-        frame.extend(b'\x00' * (ETH_FRAME_MIN - len(frame)))
+        frame += b'\x00' * (ETH_FRAME_MIN - len(frame))
 
     # Inject the complete frame
-    result = pcap_inject(handle, frame, len(frame))
+    result = pcap_inject(handle, bytes(frame), len(frame))
 
     if result < 0:
         return -1

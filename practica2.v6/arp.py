@@ -98,14 +98,14 @@ def processARPRequest(data:bytes,MAC:bytes)->None:
             -MAC: dirección MAC origen extraída por el nivel Ethernet
         Retorno: Ninguno
     '''
-    unpackedData = struct.unpack('!H6sI6sI', data)
+    unpackedData = struct.unpack('!H6sI6sI', data[:22])
     opCode = unpackedData[0]
     srcMac = unpackedData[1]
     if srcMac != MAC: return
     srcIP = unpackedData[2]
     dstIP = unpackedData[4] #Omitimos la MAC destino
 
-    if dstIP == myIP:
+    if dstIP == myIp:
         reply = createARPReply(srcIP, srcMac)
         sendEthernetFrame(reply, 28, ETHTYPE, srcMac)
 
@@ -134,7 +134,7 @@ def processARPReply(data:bytes,MAC:bytes)->None:
         Retorno: Ninguno
     '''
     global requestedIP,resolvedMAC,awaitingResponse,cache
-    unpackedData = struct.unpack('!H6sI6sI', data)
+    unpackedData = struct.unpack('!H6sI6sI', data[:22])
     opCode = unpackedData[0]
     srcMac = unpackedData[1]
     if srcMac != MAC: return
@@ -142,7 +142,7 @@ def processARPReply(data:bytes,MAC:bytes)->None:
     dstMAC = unpackedData[3]
     dstIP = unpackedData[4] 
 
-    if not (dstIP == myIP): return
+    if not (dstIP == myIp): return
     if not (srcIP == requestedIP): return
     cache[srcIP] = srcMac
     with globalLock: resolvedMAC = srcMac
@@ -161,7 +161,7 @@ def createARPRequest(ip:int) -> bytes:
             -ip: dirección a resolver 
         Retorno: Bytes con el contenido de la trama de petición ARP
     '''
-    global myMAC,myIP
+    global myMAC,myIp
     #Construimos el frame con: la cabecera, opcode, mac origen, ip origen, mac destino (nula pues no la conocemos), ip destino
     frame = struct.pack('6sH6sI6sI', ARPHeader, 0x0001, myMAC, myIp, bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), ip)
     return frame
@@ -176,7 +176,7 @@ def createARPReply(IP:int ,MAC:bytes) -> bytes:
             -MAC: dirección MAC a la que contestar
         Retorno: Bytes con el contenido de la trama de petición ARP
     '''
-    global myMAC,myIP
+    global myMAC,myIp
     frame = bytes()
     #Construimos el frame con: la cabecera, opcode, mac origen, ip origen, mac destino, ip destino
     frame = struct.pack('6sH6sI6sI', ARPHeader, 0x0002, myMAC, myIp, MAC, IP)
@@ -202,7 +202,7 @@ def process_arp_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:by
             -srcMac: MAC origen de la trama Ethernet que se ha recibido
         Retorno: Ninguno
     '''
-    unpackedData = struct.unpack('6sH', data)
+    unpackedData = struct.unpack('6sH', data[:8])
     commonHeader = unpackedData[0]
 
 
@@ -226,17 +226,17 @@ def initARP(interface:str) -> int:
             -Realizar una petición ARP gratuita y comprobar si la IP propia ya está asignada. En caso positivo se debe devolver error.
             -Marcar la variable de nivel ARP inicializado a True
     '''
-    global myIP,myMAC,arpInitialized
+    global myIp,myMAC,arpInitialized
 
     #Registramos la función de callback
     registerEthCallback(process_arp_frame, ETHTYPE)
 
     #Almacenamos IP y MAC
-    myIP = getIP(interface)
+    myIp = getIP(interface)
     myMAC = getHwAddr(interface)
 
     #TODO ARP gratuito
-    resultado = ARPResolution(myIP)
+    resultado = ARPResolution(myIp)
     if resultado == myMAC:
         return -1
     

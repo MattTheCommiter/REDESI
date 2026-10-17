@@ -107,8 +107,8 @@ if __name__ == "__main__":
 				sendEthMsg(mensaje)
 			#TODO ARP gratuito
 			elif comando.startswith("g "):
-				myIP = getIP(args.interface) #calculo el IP ya que puedo estar leyendo un resultado desactualizado o no inicializado de ARP
-				ret = ARPResolution(myIP)
+				myIp = getIP(args.interface) #calculo el IP ya que puedo estar leyendo un resultado desactualizado o no inicializado de ARP
+				ret = ARPResolution(myIp)
 				if ret is None:
 					print("No se ha dado respuesta a la ARP gratuita\n")
 				else:

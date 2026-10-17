@@ -87,10 +87,13 @@ def sendEthMsg(message:bytes) -> bytes:
     '''
     
     #TODO implementar aquí
+    if isinstance(message,str):
+        message = message.encode('utf-8')
+
     longitud = struct.pack('!H', len(message))
     data = longitud + message
     result = sendEthernetFrame(data, len(data), ETHTYPE, broadcastAddr)
     if result < 0:
         return None
 
-    return result
+    return bytes(result)
