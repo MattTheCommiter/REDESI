@@ -42,7 +42,6 @@ def getHwAddr(interface:str):
     s.close()
     return mac
 
-
 def process_Ethernet_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes) -> None:
     '''
         Nombre: process_Ethernet_frame
@@ -80,8 +79,6 @@ def process_Ethernet_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes) -> 
     else:
         return
 
-
-
 def process_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes) -> None:
     '''
         Nombre: process_frame
@@ -98,8 +95,7 @@ def process_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes) -> None:
     '''
     threading.Thread(target=process_Ethernet_frame,args=(us,header,data)).start()
 
-
-class rxThread(threading.Thread): 
+class rxThread(threading.Thread):
     ''' Clase que implementa un hilo de recepción. De esta manera al iniciar el nivel Ethernet
         podemos dejar un hilo con pcap_loop que reciba los paquetes sin bloquear el envío.
         En esta clase NO se debe modificar código
@@ -117,10 +113,6 @@ class rxThread(threading.Thread):
         #Para la ejecución de pcap_loop
         if handle is not None:
             pcap_breakloop(handle)
-
-
-
-   
 
 def registerEthCallback(callback_func: Callable[[ctypes.c_void_p,pcap_pkthdr,bytes],None], ethertype:int) -> None:
     '''
@@ -145,7 +137,6 @@ def registerEthCallback(callback_func: Callable[[ctypes.c_void_p,pcap_pkthdr,byt
     global EthernetProtocols
     #EthernetProtocols es el diccionario que relaciona función de callback y ethertype
     EthernetProtocols[ethertype] = callback_func
-
 
 def startEthernetLevel(interface:str) -> int:
     '''
@@ -227,11 +218,11 @@ def sendEthernetFrame(data:bytes,length:int,etherType:int,dstMac:bytes) -> int:
     # Añadimos el contenido del frame
     frame += data[:length]
 
-    # Pad the frame if necessary (minimum Ethernet frame size: 60 bytes, excluding the 4-byte FCS)
+    # Añadimos ceros al frame si es necesario
     if len(frame) < 60:
         frame += b'\x00' * (ETH_FRAME_MIN - len(frame))
 
-    # Inject the complete frame
+    # Enviamos la trama por la interfaz
     result = pcap_inject(handle, bytes(frame), len(frame))
 
     if result < 0:

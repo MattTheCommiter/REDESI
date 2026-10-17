@@ -24,7 +24,6 @@ def printHelp():
 	print ( "\ta <direccionIP> : Solicita ARP Request sobre la IP indicada\n")
 	print ( "\tp : Imprime cache ARP\n")
 	print ( "\th : Muestra la ayuda\n")
-	#TODO g : ARP gratuito
 	print ( "\tg : Realiza un ARP gratuito\n")
 	print ( "\tq : Salir del programa\n")
 
@@ -50,10 +49,10 @@ if __name__ == "__main__":
 	
 	
 	#Inicializamos el nivel Ethernet en la interfaz especificada
-	if (startEthernetLevel(args.interface) != 0):
+	if startEthernetLevel(args.interface) != 0:
 		logging.error('Ethernet no inicializado')
 		sys.exit(-1)
-	# TODO iniciar nivel EthMsg
+	#Inicializamos la funcionalidad de envío de mensajes Ethernet
 	if(initEthMsg(args.interface)) == -1:
 		logging.error('EthMsg no inicializado')
 		stopEthernetLevel()
@@ -107,7 +106,6 @@ if __name__ == "__main__":
 				print(f"Enviando mensaje de {len(mensaje)} Bytes: {mensaje}")
 				# Aquí puedes llamar a una función que maneje el envío de mensajes
 				sendEthMsg(mensaje)
-			#TODO ARP gratuito
 			elif comando =='g':
 				myIp = getIP(args.interface) #calculo el IP ya que puedo estar leyendo un resultado desactualizado o no inicializado de ARP
 				ret = ARPResolution(myIp)

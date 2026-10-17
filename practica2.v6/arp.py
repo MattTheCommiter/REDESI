@@ -77,8 +77,6 @@ def printCache()->None:
             if k in cache:
                 print ('{:>12}\t\t{:>12}'.format(socket.inet_ntoa(struct.pack('!I',k)),':'.join(['{:02X}'.format(b) for b in cache[k]])))
 
-
-
 def processARPRequest(data:bytes,MAC:bytes)->None:
     '''
         Nombre: processARPRequest
@@ -107,7 +105,6 @@ def processARPRequest(data:bytes,MAC:bytes)->None:
     if dstIP == myIp:
         reply = createARPReply(srcIP, srcMac)
         sendEthernetFrame(reply, 28, ETHTYPE, srcMac)
-
 
 def processARPReply(data:bytes,MAC:bytes)->None:
     '''
@@ -148,12 +145,6 @@ def processARPReply(data:bytes,MAC:bytes)->None:
     with globalLock: awaitingResponse = False
     with globalLock: requestedIP = None
 
-
-
-#TODO ejecutar el programa y ver que la construcción de los frames se hace correctamente y no hay problemas con Big-endian y Little-endian
-
-
-
 def createARPRequest(ip:int) -> bytes:
     '''
         Nombre: createARPRequest
@@ -167,7 +158,6 @@ def createARPRequest(ip:int) -> bytes:
     frame = struct.pack('!6sH6sI6sI', ARPHeader, 0x0001, myMAC, myIp, bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), ip)
     return frame
 
-    
 def createARPReply(IP:int ,MAC:bytes) -> bytes:
     '''
         Nombre: createARPReply
@@ -182,7 +172,6 @@ def createARPReply(IP:int ,MAC:bytes) -> bytes:
     #Construimos el frame con: la cabecera, opcode, mac origen, ip origen, mac destino, ip destino
     frame = struct.pack('!6sH6sI6sI', ARPHeader, 0x0002, myMAC, myIp, MAC, IP)
     return frame
-
 
 def process_arp_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:bytes) -> None:
     '''
@@ -215,8 +204,6 @@ def process_arp_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:by
         processARPRequest(data[6:], srcMac)
     elif opCode == 2:
         processARPReply(data[6:], srcMac)
-
-
 
 def initARP(interface:str) -> int:
     '''

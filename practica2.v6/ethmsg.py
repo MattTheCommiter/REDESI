@@ -38,8 +38,7 @@ def process_ethMsg_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac
         Retorno: Ninguno
     '''
     
-    #TODO implementar aquí
-    if len(data) < 2 : 
+    if len(data) < 2 :
         return 
 
     longitud = struct.unpack('!H', data[:2])[0]
@@ -63,7 +62,6 @@ def initEthMsg(interface:str) -> int:
 			interfaz
     '''
     
-    #TODO implementar aquí
     registerEthCallback(process_ethMsg_frame, ETHTYPE)
     return 0
 
@@ -86,7 +84,6 @@ def sendEthMsg(message:bytes) -> int:
           
     '''
     
-    #TODO implementar aquí
     if isinstance(message,str):
         message = message.encode('utf-8')
 
