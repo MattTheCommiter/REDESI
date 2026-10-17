@@ -69,6 +69,7 @@ if __name__ == "__main__":
 	'''
 
 	print("Introduce la orden correspondiente:\n")
+
 	
 	while True:
 		try:
@@ -83,11 +84,12 @@ if __name__ == "__main__":
 				printHelp()
 			elif comando.startswith("a "):
 				ipstr = comando.split(" ")[1]
-				print(f"Enviando solicitud ARP a {ipstr}...")
+				
 			# Aquí Se implementa la solicitud ARP
 				try:
 			#Convertimos la dirección IP en formato textual (X.X.X.X) a un entero de 32 bits.
 					ip=struct.unpack('!I',socket.inet_aton(ipstr))[0]
+					
 			#Llamamos a la función de realizar resolución ARP con la IP que hemos leído
 					ret = ARPResolution(ip)
 			#Si hay respuesta imprimir la dirección MAC
@@ -106,7 +108,7 @@ if __name__ == "__main__":
 				# Aquí puedes llamar a una función que maneje el envío de mensajes
 				sendEthMsg(mensaje)
 			#TODO ARP gratuito
-			elif comando.startswith("g "):
+			elif comando =='g':
 				myIp = getIP(args.interface) #calculo el IP ya que puedo estar leyendo un resultado desactualizado o no inicializado de ARP
 				ret = ARPResolution(myIp)
 				if ret is None:

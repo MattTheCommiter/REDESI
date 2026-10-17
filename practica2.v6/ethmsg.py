@@ -42,7 +42,7 @@ def process_ethMsg_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac
     if len(data) < 2 : 
         return 
 
-    longitud = struct.unpack('!H', data[:2])
+    longitud = struct.unpack('!H', data[:2])[0]
 
     mensaje = data[2: 2 + longitud]
     mac_string = ":".join(f"{b:02x}" for b in srcMac)
@@ -68,7 +68,7 @@ def initEthMsg(interface:str) -> int:
     return 0
 
 
-def sendEthMsg(message:bytes) -> bytes:
+def sendEthMsg(message:bytes) -> int:
     '''
         Nombre: sendEthMsg
         Descripción: Esta función mandara un mensaje en broacast 
@@ -96,4 +96,4 @@ def sendEthMsg(message:bytes) -> bytes:
     if result < 0:
         return None
 
-    return bytes(result)
+    return len(message)

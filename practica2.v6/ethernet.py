@@ -71,6 +71,7 @@ def process_Ethernet_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes) -> 
     originMac = unpackedData[1]
     ethertype = unpackedData[2]
 
+
     if dstMac != broadcastAddr and dstMac != macAddress:
         return
     if EthernetProtocols.keys().__contains__(ethertype):
@@ -219,7 +220,7 @@ def sendEthernetFrame(data:bytes,length:int,etherType:int,dstMac:bytes) -> int:
     '''
     global macAddress,handle
     frame = bytearray()
-    frame += struct.pack('6s6sH', dstMac, macAddress, etherType)
+    frame += struct.pack('!6s6sH', dstMac, macAddress, etherType)
 
     if length > ETH_FRAME_MAX: return -1
 

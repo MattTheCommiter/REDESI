@@ -15,7 +15,7 @@ import fcntl
 import time
 from threading import Lock
 from expiringdict import ExpiringDict
-ETHTYPE = 0x0806
+
 
 #Semáforo global 
 globalLock =Lock()
@@ -29,8 +29,7 @@ ARP_HLEN = 6
 ARP_FULL_LEN = 28
 
 #Ethertype de ARP
-ETHTYPE = 0x3003
-
+ETHTYPE = 0x0806
 #Variable que alamacenará que dirección IP se está intentando resolver
 requestedIP = None
 #Variable que alamacenará que dirección MAC resuelta o None si no se ha podido obtener
@@ -60,7 +59,7 @@ def getIP(interface:str) -> int:
     ip = fcntl.ioctl(
         s.fileno(),
         0x8915,  # SIOCGIFADDR
-        struct.pack('256s', (interface[:15].encode('utf-8')))
+        struct.pack('!256s', (interface[:15].encode('utf-8')))
     )[20:24]
     s.close()
     return struct.unpack('!I',ip)[0]
@@ -153,6 +152,8 @@ def processARPReply(data:bytes,MAC:bytes)->None:
 
 #TODO ejecutar el programa y ver que la construcción de los frames se hace correctamente y no hay problemas con Big-endian y Little-endian
 
+
+
 def createARPRequest(ip:int) -> bytes:
     '''
         Nombre: createARPRequest
@@ -163,7 +164,7 @@ def createARPRequest(ip:int) -> bytes:
     '''
     global myMAC,myIp
     #Construimos el frame con: la cabecera, opcode, mac origen, ip origen, mac destino (nula pues no la conocemos), ip destino
-    frame = struct.pack('6sH6sI6sI', ARPHeader, 0x0001, myMAC, myIp, bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), ip)
+    frame = struct.pack('!6sH6sI6sI', ARPHeader, 0x0001, myMAC, myIp, bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), ip)
     return frame
 
     
@@ -179,7 +180,7 @@ def createARPReply(IP:int ,MAC:bytes) -> bytes:
     global myMAC,myIp
     frame = bytes()
     #Construimos el frame con: la cabecera, opcode, mac origen, ip origen, mac destino, ip destino
-    frame = struct.pack('6sH6sI6sI', ARPHeader, 0x0002, myMAC, myIp, MAC, IP)
+    frame = struct.pack('!6sH6sI6sI', ARPHeader, 0x0002, myMAC, myIp, MAC, IP)
     return frame
 
 
@@ -202,18 +203,18 @@ def process_arp_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:by
             -srcMac: MAC origen de la trama Ethernet que se ha recibido
         Retorno: Ninguno
     '''
-    unpackedData = struct.unpack('6sH', data[:8])
+    unpackedData = struct.unpack('!6sH', data[:8])
     commonHeader = unpackedData[0]
-
+    
 
     if not ( commonHeader == ARPHeader):
         return
 
     opCode = unpackedData[1]
-    if opCode == b'\x00\x01':
-        processARPRequest(data, srcMac)
-    elif opCode == b'\x00\x02':
-        processARPReply(data, srcMac)
+    if opCode == 1:
+        processARPRequest(data[6:], srcMac)
+    elif opCode == 2:
+        processARPReply(data[6:], srcMac)
 
 
 
@@ -237,7 +238,8 @@ def initARP(interface:str) -> int:
 
     #TODO ARP gratuito
     resultado = ARPResolution(myIp)
-    if resultado == myMAC:
+
+    if resultado is not None: #comprobamos que no hubo respuesta
         return -1
     
     #Marcamos la variable de nivel ARP a True
@@ -273,13 +275,15 @@ def ARPResolution(ip:int) -> bytes:
 
     request = createARPRequest(ip)
 
-    for _ in range(0,3):
-        with globalLock: status = awaitingResponse
-        if status == True:
-            sendEthernetFrame(request, ARP_FULL_LEN, ETHTYPE, broadcastAddr)
-            time.sleep(0.2) #un chin de sleep para que no se termine el bucle sin dejar tiempo de respuesta
-        else:
-            with globalLock: return resolvedMAC
 
-
+    for _ in range(3):
+        sendEthernetFrame(request, ARP_FULL_LEN, ETHTYPE, broadcastAddr)
+        time.sleep(0.2)
+        with globalLock:
+            if not awaitingResponse:
+                return resolvedMAC
+    with globalLock:
+        awaitingResponse = False
+        requestedIP = None
     return None
+
