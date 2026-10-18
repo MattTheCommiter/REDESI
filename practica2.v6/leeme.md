@@ -7,7 +7,11 @@ A continuación se mencionarán las funcionalidades desarrolladas y las comproba
 Varias relecturas del enunciado y revisión del archivo subido a Moodle.
     
 ## Recibir tramas Ethernet, realizar comprobaciones y llamar correctamente a la función de callback de nivel superior: Realizado 
-    
+Esta funcionalidad se comprueba mediante el uso de todo el codigo de la practica, con los tests descritos posteriormente. El callback de funciones de nivel superior esta implementado en el codigo:
+    -Las funciones para inicializar el entorno ARP guarda en el mapa de ethernet su funcion de 'processARPRequest', la funcion de inicializacion de ethmsg añade en el mapa 
+    su funcion 'process_ethMsg_frame'.
+    -Cada vez que llega un paquete, pcap_loop delega el paquete completo a la funcion 'process_Ethernet_frame' la cual abre la cabecera del mensaje. Despues manda el payload a la funcion de callback configurada para el tipo ethernet del mensaje.
+
 ## Enviar tramas Ethernet correctamente: Realizado.
 Como se describe en los puntos posteriores, tanto el envio de tramas Ethernet para mensajes broadcast o protocolo ARP (ambos diferenciados en el codigo con su ETHTYPE) funcionan correctamente, se envian entre los hosts de mininet y son captados por wireshark.
 
@@ -19,9 +23,12 @@ Las tramas ARP se envían cuando se introducen los comandos "g" o bien "a <IP>".
 
 ## Procesar correctamente peticiones ARP recibidas: Realizado
 Para probar esta funcionalidad, comprobamos que la ARP request aparecía en la captura de Wireshark del host que la recibía e incluimos un mensaje al final del código de ProcessARPRequest para saber que se había procesado la petición. Esta funcionalidad también queda probada al probar la corrección del próximo apartado. Las capturas correspondientes a este apartado son Imagenes/Recepcion_de_ARP, Imagenes/Recepcion_de_ARP2 y Imagenes/Recepcion_de_ARP3.
+
 ## Enviar correctamente respuestas ARP
 La captura mostrada en el apartado anterior demuestra que el host que recibe la ARP request envía la respuesta a dicha petición. La nueva captura (Imagenes/Envio_de_Respuesta_ARP) muestra que, efectivamente, el host que había comenzado la resolución ARP en un primer momento recibe la respuesta (aparecen dos respuestas en la captura, la enviada por nuestro programa y la enviada por el sistema operativo).
+
 ## Procesar correctamente respuestas ARP
 La captura del apartado anterior muestra que el host que envió la petición de ARP procesa la respuesta correctamente e imprime por terminal la dirección MAC del otro host.
+
 ## Manejo correcto de la caché ARP
 Para probar esta funcionalidad, hemos ejecutado el programa realizando "a 10.0.0.2" desde h1 dos veces consecutivas. Con Wireshark, hemos podido comprobar que solo se realizaban peticiones ARP la primera vez que se ejecutaba el comando, pues en la segunda se leyó el dato de la caché ARP. Además, hemos impreso la caché ARP para asegurarnos de que el dato estaba guardado correctamente. Todo esto se muestra en la captura Imagenes/Procesamiento_de_Respuesta_ARP.
