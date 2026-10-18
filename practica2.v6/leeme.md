@@ -6,12 +6,14 @@ A continuación se mencionarán las funcionalidades desarrolladas y las comproba
 ## Normativa de entrega cumplida en su totalidad: Realizado 
 Varias relecturas del enunciado y revisión del archivo subido a Moodle.
     
-## Recibir tramas Ethernet, realizar comprobaciones yllamar correctamente a la función de callback de nivel superior: Realizado 
+## Recibir tramas Ethernet, realizar comprobaciones y llamar correctamente a la función de callback de nivel superior: Realizado 
     
 ## Enviar tramas Ethernet correctamente: Realizado.
+Como se describe en los puntos posteriores, tanto el envio de tramas Ethernet para mensajes broadcast o protocolo ARP (ambos diferenciados en el codigo con su ETHTYPE) funcionan correctamente, se envian entre los hosts de mininet y son captados por wireshark.
 
 ## Imprimir mensajes sobre el protocolo 0x0AA0: Realizado
-    
+Cuando se introduce el comando 'm "mensaje"' se lanza un mensaje en broadcast que le llegara a todos los usuarios conectados a la misma red local. Se adjunta la captura de pantalla (Imagenes/Imprimir_mensajes) para comprobar el correcto funcionamiento del envio de mensajes ethernet, ademas de la impresión de los mismos mostrando fecha, segundos y microsegundos, direccion MAC de origen y el texto enviado.
+
 ## Enviar correctamente peticiones ARP: Realizado.
 Las tramas ARP se envían cuando se introducen los comandos "g" o bien "a <IP>". En ambos casos, se llama a la función ARPResolution, que es la que coordina la resolución ARP y compone y envía la ARP request inicial.Se han aportado capturas (/Imagenes/Envio_de_ARP e Imagenes/Envio_de_ARP2) que demuestran que, tanto en los casos de ARP gratuito como petición ARP a una IP concreta, la request aparece en Wireshark como enviada. En concreto, en las capturas aparecen 3 peticiones realizadas al comenzar el programa, que se corresponden a una petición de ARP gratuita inicial, y otras 3 peticiones ejecutadas con el comando introducido (en el programa, se ejecuta una petición hasta 3 veces en caso de que no se reciba una respuesta)
 

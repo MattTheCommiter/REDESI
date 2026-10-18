@@ -46,7 +46,7 @@ def process_ethMsg_frame(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac
     mensaje = data[2: 2 + longitud]
     mac_string = ":".join(f"{b:02x}" for b in srcMac)
 
-    logging.info("[%d.%d] %s : %s",header.ts.tv_sec, header.ts.tv_usec, mac_string, mensaje) #imprimimos el mensaje 
+    logging.info("[%d.%d] <%s> : %s",header.ts.tv_sec, header.ts.tv_usec, mac_string, mensaje) #imprimimos el mensaje 
     
     return
     
