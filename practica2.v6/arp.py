@@ -103,6 +103,7 @@ def processARPRequest(data:bytes,MAC:bytes)->None:
     dstIP = unpackedData[4] #Omitimos la MAC destino
 
     if dstIP == myIp:
+        print(f"ARP request received and processed! Sending reply:")
         reply = createARPReply(srcIP, srcMac)
         sendEthernetFrame(reply, 28, ETHTYPE, srcMac)
 
@@ -254,8 +255,9 @@ def ARPResolution(ip:int) -> bytes:
     '''
     global requestedIP,awaitingResponse,resolvedMAC
     with cacheLock:
-        if cache.keys().__contains__(ip):
-            return cache.get(ip)
+        cachedMac = cache.get(ip)
+    if cachedMac is not None:
+            return cachedMac
 
     with globalLock: requestedIP = ip
     with globalLock: awaitingResponse = True

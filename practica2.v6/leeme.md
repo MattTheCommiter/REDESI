@@ -20,8 +20,8 @@ Las tramas ARP se envían cuando se introducen los comandos "g" o bien "a <IP>".
 ## Procesar correctamente peticiones ARP recibidas: Realizado
 Para probar esta funcionalidad, comprobamos que la ARP request aparecía en la captura de Wireshark del host que la recibía e incluimos un mensaje al final del código de ProcessARPRequest para saber que se había procesado la petición. Esta funcionalidad también queda probada al probar la corrección del próximo apartado. Las capturas correspondientes a este apartado son Imagenes/Recepcion_de_ARP, Imagenes/Recepcion_de_ARP2 y Imagenes/Recepcion_de_ARP3.
 ## Enviar correctamente respuestas ARP
-La captura mostrada en el apartado anterior demuestra que el host que recibe la ARP request envía la respuesta a dicha petición. La nueva captura muestra que, efectivamente, el host que había comenzado la resolución ARP en un primer momento efectivamente recibe la respuesta.
+La captura mostrada en el apartado anterior demuestra que el host que recibe la ARP request envía la respuesta a dicha petición. La nueva captura (Imagenes/Envio_de_Respuesta_ARP) muestra que, efectivamente, el host que había comenzado la resolución ARP en un primer momento recibe la respuesta (aparecen dos respuestas en la captura, la enviada por nuestro programa y la enviada por el sistema operativo).
 ## Procesar correctamente respuestas ARP
-
+La captura del apartado anterior muestra que el host que envió la petición de ARP procesa la respuesta correctamente e imprime por terminal la dirección MAC del otro host.
 ## Manejo correcto de la caché ARP
-
+Para probar esta funcionalidad, hemos ejecutado el programa realizando "a 10.0.0.2" desde h1 dos veces consecutivas. Con Wireshark, hemos podido comprobar que solo se realizaban peticiones ARP la primera vez que se ejecutaba el comando, pues en la segunda se leyó el dato de la caché ARP. Además, hemos impreso la caché ARP para asegurarnos de que el dato estaba guardado correctamente. Todo esto se muestra en la captura Imagenes/Procesamiento_de_Respuesta_ARP.
