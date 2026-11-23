@@ -127,7 +127,7 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     '''
     global protocols
 
-    unpackedData = struct.unpack('!CCHHHCCHII', data[:20])
+    unpackedData = struct.unpack('!CCHHHCC', data[:20])
     version_and_ihl = unpackedData[0]
     serviceType = unpackedData[1]
     totalLength = unpackedData[2]
@@ -135,9 +135,12 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     flags_and_offset = unpackedData[4]
     ttl = unpackedData[5]
     protocol = unpackedData[6]
-    headerChecksum = unpackedData[7]
-    srcIP = unpackedData[8]
-    destIP = unpackedData[9]
+    # Extraemos el checksum respetando el orden de red
+    headerChecksum = struct.unpack('H', data[10:12])[0]
+    # Usamos el orden deseado para el resto de la cabecera
+    unpackedData = struct.unpack('!II', data[12:20])
+    srcIP = unpackedData[0]
+    destIP = unpackedData[1]
     
     ihl = version_and_ihl & 0xF
     if ihl < 5:
@@ -213,7 +216,7 @@ def initIP(interface,opts=None):
         Retorno: True o False en función de si se ha inicializado el nivel o no
     '''
     initARP(interface)
-    myIp = getIP(interface)
+    myIP = getIP(interface)
     netmask = getNetmask(interface)
     MTU = getMTU(interface)
     defaultGW = getDefaultGW(interface)
@@ -225,7 +228,37 @@ def initIP(interface,opts=None):
 
     return True;
 
-    
+
+# ---------------------------------------------------------------------------
+# Funciones auxiliares para processIPDatagram
+# ---------------------------------------------------------------------------
+
+def _build_ip_header(version_and_ihl, service_type, total_length, ipid, flags_and_offset, ttl, protocol, checksum, srcIP, destIP, ipOpts):
+    '''
+        Construye la cabecera IP completa mediante struct.pack (incluyendo las opciones si las hubiera)
+    '''
+    header = struct.pack('!CCHHHCC',version_and_ihl, service_type, total_length, ipid, flags_and_offset, ttl, protocol)
+    # Respetamos el orden de red en el checksum
+    header += struct.pack('H',checksum)
+    header += struct.pack('!II', srcIP, destIP)
+    if ipOpts:
+        header += ipOpts
+    return header
+
+
+def _resolve_dst_mac(dstIP, myIP, netmask, defaultGW):
+    '''
+        Determina el próximo salto según la máscara de red y resuelve su MAC mediante ARP.
+        Retorna la dirección MAC (bytes) o None si no se pudo resolver.
+    '''
+    if (dstIP & netmask) == (myIP & netmask):
+        next_hop = dstIP          # entrega local
+    else:
+        next_hop = defaultGW      # enviar al router
+
+    dstMac = ARPResolution(next_hop)
+    return dstMac   # puede ser None si ARP falla
+
 
 def sendIPDatagram(dstIP,data,protocol):
     global IPID
@@ -252,41 +285,54 @@ def sendIPDatagram(dstIP,data,protocol):
         Retorno: True o False en función de si se ha enviado el datagrama correctamente o no
           
     '''
-    ip_header = bytes()
-    header_len = 20 + len(ipOpts)
-    ihl = header_len//4 #Usamos función suelo para que sea un int
+    header_len = 20 + len(ipOpts or b'')
+    ihl = header_len // 4
     version_and_ihl = 0x40 + ihl
     serviceType = 1
     ttl = 40
-    # En un principio lo ponemos a cero, para recalcularlo después
-    headerChecksum = 0x0000
-    srcIP = myIp
+    srcIP = myIP
     destIP = dstIP
-    totalLength = header_len + len(data)
     ipid = IPID
 
-    # TODO hacer que el tamaño de los frames sea múltiplo de 8, recalcular total_length en cada fragmento, calcular el checksum, usar gateway para dstMac y no solo ARP
-    if totalLength > MTU:
-        offset=0
-        while(offset < len(data)):
-            flags_and_offset = (0 << 15) + (1 << 14) + offset
-            ip_header = struct.pack('!CCHHHCCHII', version_and_ihl, totalLength, ipid, flags_and_offset, ttl, protocol, headerChecksum, srcIP, dstIP)
-            frame = ip_header + data[offset: offset + MTU - header_len]
-            dstMac = ARPResolution(dstIP)
-            sendEthernetFrame(frame, len(frame), 0x800, dstMac)
-            offset += MTU - header_len
-    else:
-        flags_and_offset = (0 << 15) + (0 << 14) + 0x00
-        ip_header = struct.pack('!CCHHHCCHII', version_and_ihl, totalLength, ipid, flags_and_offset, ttl, protocol,
-                                headerChecksum, srcIP, dstIP)
-        frame = ip_header + data
-        dstMac = ARPResolution(dstIP)
+    # Tamaño máximo de datos útiles por fragmento (debe ser múltiplo de 8)
+    usable_MTU = MTU - header_len
+    max_data = (usable_MTU // 8) * 8
+
+    if max_data <= 0:
+        # La MTU es demasiado pequeña para transportar siquiera la cabecera IP
+        return False
+
+    offset = 0
+    while offset < len(data):
+        frag = data[offset: offset + max_data]
+        is_last = (offset + len(frag)) == len(data)
+
+        # MF = 0 en el último fragmento, 1 en los demás
+        mf = 0 if is_last else 1
+        frag_offset = offset // 8   # el offset se calcula en palabras de 8 bytes
+        flags_and_offset = (0 << 15) + (mf << 14) + frag_offset   # DF = 0
+
+        total_len = header_len + len(frag)
+
+        # Cabecera con checksum a cero para calcularlo
+        ip_header = _build_ip_header(version_and_ihl, serviceType, total_len, ipid,
+                                     flags_and_offset, ttl, protocol, 0,
+                                     srcIP, destIP, ipOpts)
+        headerChecksum = chksum(ip_header)
+
+        # Cabecera final con el checksum real
+        ip_header = _build_ip_header(version_and_ihl, serviceType, total_len, ipid,
+                                     flags_and_offset, ttl, protocol,
+                                     headerChecksum, srcIP, destIP, ipOpts)
+
+        frame = ip_header + frag
+
+        dstMac = _resolve_dst_mac(dstIP, myIP, netmask, defaultGW)
+        if dstMac is None:
+            return False
+
         sendEthernetFrame(frame, len(frame), 0x800, dstMac)
+        offset += len(frag)
 
-    IPID+=1
-
-
-
-
-
-
+    IPID += 1
+    return True
