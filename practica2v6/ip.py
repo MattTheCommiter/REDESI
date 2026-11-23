@@ -127,7 +127,7 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     '''
     global protocols
 
-    unpackedData = struct.unpack('!CCHHHCC', data[:20])
+    unpackedData = struct.unpack('!BBHHHBB', data[:20])
     version_and_ihl = unpackedData[0]
     serviceType = unpackedData[1]
     totalLength = unpackedData[2]
@@ -151,8 +151,8 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     if chksum(data[:ihl*4]) != 0x00:
         return
     
-    df_bit = (flags_and_offset & (1 << 15)) >> 15
-    mf_bit = (flags_and_offset & (1 << 14)) >> 14
+    df_bit = (flags_and_offset & (1 << 14)) >> 14
+    mf_bit = (flags_and_offset & (1 << 13)) >> 13
     offset = flags_and_offset & 0x1FFF
     if offset != 0x00:
         return
@@ -226,7 +226,7 @@ def initIP(interface,opts=None):
 
     registerEthCallback(process_IP_datagram, 0x800)
 
-    return True;
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -237,7 +237,7 @@ def _build_ip_header(version_and_ihl, service_type, total_length, ipid, flags_an
     '''
         Construye la cabecera IP completa mediante struct.pack (incluyendo las opciones si las hubiera)
     '''
-    header = struct.pack('!CCHHHCC',version_and_ihl, service_type, total_length, ipid, flags_and_offset, ttl, protocol)
+    header = struct.pack('!BBHHHBB',version_and_ihl, service_type, total_length, ipid, flags_and_offset, ttl, protocol)
     # Respetamos el orden de red en el checksum
     header += struct.pack('H',checksum)
     header += struct.pack('!II', srcIP, destIP)
@@ -309,8 +309,9 @@ def sendIPDatagram(dstIP,data,protocol):
 
         # MF = 0 en el último fragmento, 1 en los demás
         mf = 0 if is_last else 1
+
         frag_offset = offset // 8   # el offset se calcula en palabras de 8 bytes
-        flags_and_offset = (0 << 15) + (mf << 14) + frag_offset   # DF = 0
+        flags_and_offset = (0 << 14) + (mf << 13) + frag_offset   # DF = 0
 
         total_len = header_len + len(frag)
 
