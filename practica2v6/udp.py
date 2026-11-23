@@ -47,6 +47,21 @@ def process_UDP_datagram(us,header,data,srcIP):
         Retorno: Ninguno
           
     '''
+    if len(data) < UDP_HLEN: #comprobamos que los datos tienen por lo menos una cabecera
+        return
+    
+    unpacked_data = struct.unpack('!HHHH', data[ : UDP_HLEN])
+    source_port = unpacked_data[0]
+    destination_port = unpacked_data[1]
+    length = unpacked_data[2]
+    checksum = unpacked_data[3]
+
+    logging.debug(f"Puerto de origen: {source_port}")
+    logging.debug(f"Puerto de destino: {destination_port}")
+    datos = data[UDP_HLEN : ]
+    logging.debug(f'Datos del datagrama: {datos}')
+    
+    
 
 
 def sendUDPDatagram(data,dstPort,dstIP):
@@ -67,7 +82,13 @@ def sendUDPDatagram(data,dstPort,dstIP):
         Retorno: True o False en función de si se ha enviado el datagrama correctamente o no
           
     '''
-    udp_datagram = bytes()
+     
+     header = struct.pack('!HHHH', getUDPSourcePort(), dstPort, len(data) + UDP_HLEN, 0)
+
+     udp_datagram = bytes()
+     udp_datagram += header
+     udp_datagram += data
+     return sendIPDatagram(dstIP, udp_datagram, UDP_PROTO)
 
 
 def initUDP():
@@ -82,3 +103,4 @@ def initUDP():
         Retorno: Ninguno
           
     '''
+    registerIPProtocol(process_UDP_datagram, UDP_PROTO)

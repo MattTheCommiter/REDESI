@@ -127,7 +127,7 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     '''
     global protocols
 
-    unpackedData = struct.unpack('!BBHHHBB', data[:20])
+    unpackedData = struct.unpack('!BBHHHBB', data[:10])
     version_and_ihl = unpackedData[0]
     serviceType = unpackedData[1]
     totalLength = unpackedData[2]
@@ -168,7 +168,7 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
 
     if protocol in protocols:
         src_ip_str = socket.inet_ntoa(struct.pack('!I', srcIP))
-        protocols.get(protocol)(us, header, data[(ihl*4):], src_ip_str)
+        protocols.get(protocol)(us, header, data[(ihl*4):totalLength], src_ip_str)
 
 
 

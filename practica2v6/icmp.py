@@ -18,6 +18,12 @@ ICMP_ECHO_REPLY_TYPE = 0
 timeLock = Lock()
 icmp_send_times = {}
 
+
+# ---------------------------------------------------------------------------
+# Funciones auxiliares para processICMPmessage
+# ---------------------------------------------------------------------------
+
+
 def process_ICMP_message(us,header,data,srcIp):
     '''
         Nombre: process_ICMP_message
@@ -47,7 +53,43 @@ def process_ICMP_message(us,header,data,srcIp):
         Retorno: Ninguno
           
     '''
+    #alcular el checksum
+    unpacked_data = struct.unpack('!BBHHH', data[:8])
+    type = unpacked_data[0]
+    code = unpacked_data[1]
+    id = unpacked_data[3]
+    seq_num = unpacked_data[4]
+    datos = data[8 : ]
+
+    checksum = chksum(data) #valor del checksum con cabecera y datos, todo para dentro
+
+    #comprobamos que el valor de checksum es correcto
+    if(checksum != 0x0):
+        return
+
+    logging.debug(f"Tipo de mensaje ICMP: {type}")
+    logging.debug(f"Codigo subtipo ICMP: {code}")
+
+    if type == ICMP_ECHO_REQUEST_TYPE:
+
+        sendICMPMessage(datos, ICMP_ECHO_REPLY_TYPE, code, id, seq_num, srcIp) #mandamos el mensaje de vuelta, mismos datos
+
+    elif type == ICMP_ECHO_REPLY_TYPE:
+        with timeLock:
+            send_time = icmp_send_times[srcIp + id + seq_num]
+
+        received_time = header.ts.tv_sec + header.ts.tv_usec / 1000000
+        rtt = received_time - send_time
+        logging.info(f"El valor de RTT obtenido : {rtt:.6f} segundos")
+
+    else: 
+        return
+
     
+    
+
+        
+
 
 def sendICMPMessage(data,type,code,icmp_id,icmp_seqnum,dstIP):
     '''
@@ -78,8 +120,30 @@ def sendICMPMessage(data,type,code,icmp_id,icmp_seqnum,dstIP):
         Retorno: True o False en función de si se ha enviado el mensaje correctamente o no
           
     '''
-  
-    icmp_message = bytes()
+    if type == ICMP_ECHO_REPLY_TYPE or type == ICMP_ECHO_REQUEST_TYPE:
+        icmp_message = bytes()
+        new_header = struct.pack('!BBHHH',type, code, 0, icmp_id, icmp_seqnum)
+
+        icmp_message = new_header + data
+
+        checksum = chksum(icmp_message)
+
+        new_header = struct.pack('!BB', type, code)
+        new_header += struct.pack('H',checksum) #metemos el checksum en little endian
+        new_header += struct.pack('!HH', icmp_id, icmp_seqnum)
+
+        icmp_message = new_header + data
+
+        if type == ICMP_ECHO_REQUEST_TYPE:
+            with timeLock:
+                icmp_send_times[dstIP + icmp_id + icmp_seqnum] = time.time()
+
+        return sendIPDatagram(dstIP, icmp_message, ICMP_PROTO)
+
+    return False
+         
+
+    
    
 def initICMP():
     '''
@@ -93,3 +157,4 @@ def initICMP():
         Retorno: Ninguno
           
     '''
+    registerIPProtocol(process_ICMP_message, ICMP_PROTO)
