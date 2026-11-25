@@ -36,7 +36,7 @@ if __name__ == "__main__":
 	parser.add_argument('--debug', dest='debug', default=False, action='store_true',help='Activar Debug messages')
 	parser.add_argument('--addOptions', dest='addOptions', default=False, action='store_true',help='Añadir opciones a los datagranas IP')
 	parser.add_argument('--dataFile',dest='dataFile',default = False,help='Fichero con datos a enviar')
-	parser.add_argument('--icmpsize',dest='icmpSize',default = False,help='Tamaño de datagramas ICMP a enviar', type = int)
+	parser.add_argument('--icmpSize',dest='icmpSize',default = False,help='Tamaño de datagramas ICMP a enviar', type = int)
 	
 	args = parser.parse_args()
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 		icmp_string = ""
 		for i in range(0,args.icmpSize):
 			icmp_string = icmp_string + chr(i % 26 + ord('A')) 
-			icmp_data = struct.pack(f'{args.icmpSize}s',icmp_string)
+		icmp_data = icmp_string.encode()
 	
 		
 	startEthernetLevel(args.interface)
