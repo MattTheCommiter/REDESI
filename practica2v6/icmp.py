@@ -71,7 +71,7 @@ def process_ICMP_message(us,header,data,srcIp):
     logging.debug(f"Codigo subtipo ICMP: {code}")
 
     if type == ICMP_ECHO_REQUEST_TYPE:
-
+        logging.debug(f"Mandando respuesta de ICMP")
         sendICMPMessage(datos, ICMP_ECHO_REPLY_TYPE, code, id, seq_num, srcIp) #mandamos el mensaje de vuelta, mismos datos
 
     elif type == ICMP_ECHO_REPLY_TYPE:

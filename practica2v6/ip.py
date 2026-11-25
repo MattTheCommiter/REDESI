@@ -127,7 +127,7 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     '''
     global protocols
 
-    unpackedData = struct.unpack('!BBHHHBB', data[:10])
+    unpackedData = struct.unpack('!BBHHHBBHII', data[:20])
     version_and_ihl = unpackedData[0]
     serviceType = unpackedData[1]
     totalLength = unpackedData[2]
@@ -136,11 +136,10 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     ttl = unpackedData[5]
     protocol = unpackedData[6]
     # Extraemos el checksum respetando el orden de red
-    headerChecksum = struct.unpack('H', data[10:12])[0]
+    headerChecksum = unpackedData[7]
     # Usamos el orden deseado para el resto de la cabecera
-    unpackedData = struct.unpack('!II', data[12:20])
-    srcIP = unpackedData[0]
-    destIP = unpackedData[1]
+    srcIP = unpackedData[8]
+    destIP = unpackedData[9]
     
     ihl = version_and_ihl & 0xF
     if ihl < 5:
@@ -156,7 +155,7 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     offset = flags_and_offset & 0x1FFF
     if offset != 0x00:
         return
-    logging.debug(f"Longitud de la cabecera IP: {ihl}")
+    logging.debug(f"Longitud de la cabecera IP: {ihl * 4}")
     logging.debug(f"IPID: {ipid}")
     logging.debug(f"TTL: {ttl}")
     logging.debug(f"Valor de flag DF: {df_bit}")
@@ -167,8 +166,7 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     logging.debug(f"Protocolo: {protocol}")
 
     if protocol in protocols:
-        src_ip_str = socket.inet_ntoa(struct.pack('!I', srcIP))
-        protocols.get(protocol)(us, header, data[(ihl*4):totalLength], src_ip_str)
+        protocols.get(protocol)(us, header, data[(ihl*4):totalLength], srcIP)
 
 
 
@@ -333,7 +331,28 @@ def sendIPDatagram(dstIP,data,protocol):
             return False
 
         sendEthernetFrame(frame, len(frame), 0x800, dstMac)
+        logging.debug(f"Paquete mandado con tamaño {len(frame)}")
+
         offset += len(frag)
 
     IPID += 1
     return True
+
+###############################################
+# Posibles simbolos, que tipo dan y cuantos bytes ocupan por si en el examen piden cambiar algo de las cabeceras
+###############################################
+
+# b	signed char	1
+# B	unsigned char	1
+# h	signed short	2
+# H	unsigned short	2
+# i	signed int	4
+# I	unsigned int	4
+# l	signed long	4 con !
+# L	unsigned long	4 con !
+# q	signed long long	8
+# Q	unsigned long long	8
+# f	float	4
+# d	double	8
+# ?	bool	1
+# s	char[] (cadena de bytes)	Número indicado

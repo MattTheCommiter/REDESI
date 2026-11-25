@@ -23,7 +23,7 @@ DST_PORT = 53
 ICMP_ECHO_REQUEST_TYPE = 8
 ICMP_ECHO_REQUEST_CODE = 0
 # TODO: Cambiar ICMP_ID según enunciado
-ICMP_ID = 0
+ICMP_ID = NUMERO_DE_PAREJA
 
 ipRROption = bytes([7,11,4,0,0,0,0,0,0,0,0,0])
 
@@ -36,7 +36,8 @@ if __name__ == "__main__":
 	parser.add_argument('--debug', dest='debug', default=False, action='store_true',help='Activar Debug messages')
 	parser.add_argument('--addOptions', dest='addOptions', default=False, action='store_true',help='Añadir opciones a los datagranas IP')
 	parser.add_argument('--dataFile',dest='dataFile',default = False,help='Fichero con datos a enviar')
-	#TODO: Opción --icmpsize
+	parser.add_argument('--icmpsize',dest='icmpSize',default = False,help='Tamaño de datagramas ICMP a enviar', type = int)
+	
 	args = parser.parse_args()
 
 	if args.debug:
@@ -54,6 +55,7 @@ if __name__ == "__main__":
 		parser.print_help()
 		sys.exit(-1)
 
+
 	ipOpts = None
 	if args.addOptions:
 		ipOpts = ipRROption
@@ -65,10 +67,18 @@ if __name__ == "__main__":
 			data=f.read()
 			#Pasamos los datos de cadena a bytes
 			udp_data = data.encode()
+
+	if not args.icmpSize:
+		icmp_data = b'ABCDEFGHIJKL'
+
+	else:
+		#TODO: construir mensaje ICMP según opción --icmpsize
+		icmp_string = ""
+		for i in range(0,args.icmpSize):
+			icmp_string = icmp_string + chr(i % 26 + ord('A')) 
+			icmp_data = struct.pack(f'{args.icmpSize}s',icmp_string)
 	
-	icmp_data = b'ABCDEFGHIJKL'
-	#TODO: construir mensaje ICMP según opción --icmpsize
-	
+		
 	startEthernetLevel(args.interface)
 	initICMP()
 	initUDP()
@@ -78,7 +88,7 @@ if __name__ == "__main__":
 
 	
 	
-	
+	logging.debug(f"My Ip : {socket.inet_ntoa(struct.pack('!I', getIP(args.interface)))}")
 	while True:
 		try:
 			msg = input('\n\t0x16\n\tIntroduzca opcion:\n\t1.Enviar ping\n\t2.Enviar datagrama UDP:')

@@ -103,7 +103,7 @@ def processARPRequest(data:bytes,MAC:bytes)->None:
     dstIP = unpackedData[4] #Omitimos la MAC destino
 
     if dstIP == myIp:
-        print(f"ARP request received and processed! Sending reply:")
+        print(f"ARP request received from {srcIP} and processed! Sending reply:")
         reply = createARPReply(srcIP, srcMac)
         sendEthernetFrame(reply, 28, ETHTYPE, srcMac)
 
