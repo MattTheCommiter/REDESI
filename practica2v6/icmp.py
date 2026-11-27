@@ -10,7 +10,7 @@ from threading import Lock
 import struct
 
 ICMP_PROTO = 1
-
+ICMP_HLEN_MIN = 8
 
 ICMP_ECHO_REQUEST_TYPE = 8
 ICMP_ECHO_REPLY_TYPE = 0
@@ -38,8 +38,7 @@ def process_ICMP_message(us,header,data,srcIp):
                 los datos recibidos en el ECHO_REQUEST. Es decir, "rebotamos" los datos que nos llegan.
                 -Enviar el mensaje usando la función sendICMPMessage
             -Si el tipo es ICMP_ECHO_REPLY_TYPE:
-                -Extraer del diccionario icmp_send_times el valor de tiempo de envío usando como clave los campos srcIP e icmp_id e icmp_seqnum
-                contenidos en el mensaje ICMP. Restar el tiempo de envio extraído con el tiempo de recepción (contenido en la estructura pcap_pkthdr)
+                -Extraer del diccionario icmp_send_times el valor de tiempo de envío usando como clave los campos srcIP e icmp_id e icmp_seqnum contenidos en el mensaje ICMP. Restar el tiempo de envio extraído con el tiempo de recepción (contenido en la estructura pcap_pkthdr)
                 -Se debe proteger el acceso al diccionario de tiempos usando la variable timeLock
                 -Mostrar por pantalla la resta. Este valor será una estimación del RTT
             -Si es otro tipo:
@@ -53,13 +52,15 @@ def process_ICMP_message(us,header,data,srcIp):
         Retorno: Ninguno
           
     '''
-    #alcular el checksum
-    unpacked_data = struct.unpack('!BBHHH', data[:8])
+    if len(data) < ICMP_HLEN_MIN: #comprobamos que los datos tienen por lo menos una cabecera
+        return
+    #Calcular el checksum
+    unpacked_data = struct.unpack('!BBHHH', data[:ICMP_HLEN_MIN])
     type = unpacked_data[0]
     code = unpacked_data[1]
     id = unpacked_data[3]
     seq_num = unpacked_data[4]
-    datos = data[8 : ]
+    datos = data[ICMP_HLEN_MIN : ]
 
     checksum = chksum(data) #valor del checksum con cabecera y datos, todo para dentro
 

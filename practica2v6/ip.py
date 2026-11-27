@@ -127,7 +127,10 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     '''
     global protocols
 
-    unpackedData = struct.unpack('!BBHHHBBHII', data[:20])
+    if (len(data) < IP_MIN_HLEN):
+        return
+
+    unpackedData = struct.unpack('!BBHHHBBHII', data[:IP_MIN_HLEN])
     version_and_ihl = unpackedData[0]
     serviceType = unpackedData[1]
     totalLength = unpackedData[2]
@@ -144,7 +147,7 @@ def process_IP_datagram(us:ctypes.c_void_p,header:pcap_pkthdr,data:bytes,srcMac:
     ihl = version_and_ihl & 0xF
     if ihl < 5:
         return
-    unpackedData =struct.unpack(f'!{ihl*4 - 20}s', data[20:(ihl*4)])
+    unpackedData =struct.unpack(f'!{ihl*4 - IP_MIN_HLEN}s', data[IP_MIN_HLEN:(ihl*4)])
     options = unpackedData[0]
 
     if chksum(data[:ihl*4]) != 0x00:
